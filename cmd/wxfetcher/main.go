@@ -24,9 +24,9 @@ func main() {
 	// Start RPC Server
 	log.Notice("Main", "Starting WxFetcher RPC server at %s...", *rpcListen)
 	if rpcSocket, err := net.Listen("tcp", *rpcListen); err == nil {
-		rpcServer := grpc.NewServer()
-		rpc.RegisterWxFetcherServer(rpcServer, rpc.NewServer())
-		go rpcServer.Serve(rpcSocket)
+		grpcServer, rpcServer := grpc.NewServer(), rpc.NewServer()
+		rpc.RegisterWxFetcherServer(grpcServer, rpcServer)
+		go grpcServer.Serve(rpcSocket)
 	} else {
 		log.Critical("Main", "Error creating RPC socket: %v", err)
 		os.Exit(1)

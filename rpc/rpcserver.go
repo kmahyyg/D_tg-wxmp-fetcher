@@ -11,7 +11,7 @@ type RPCServer struct {
 	http *http.Client
 }
 
-func NewRPCServer() *RPCServer {
+func NewServer() *RPCServer {
 	return &RPCServer{
 		http: &http.Client{},
 	}
