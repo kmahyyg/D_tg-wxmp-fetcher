@@ -1,9 +1,9 @@
 package article
 
 import (
-	"io"
 	"bytes"
 	"errors"
+	"io"
 	"regexp"
 )
 
@@ -33,16 +33,16 @@ func matchRegExp(re *regexp.Regexp, buf *bytes.Reader) ([][]byte, error) {
 	}
 	endLen := buf.Len()
 	// Seek back to match start
-	if _, err := buf.Seek(int64(endLen - startLen + matchLoc[0]), io.SeekCurrent); err != nil {
+	if _, err := buf.Seek(int64(endLen-startLen+matchLoc[0]), io.SeekCurrent); err != nil {
 		return nil, err
 	}
 	// Retrieve all results
 	result := make([][]byte, len(matchLoc)/2)
 	for i := 0; i < len(result); i++ {
 		// Seek to match start
-		matchSize := matchLoc[i * 2 + 1] - matchLoc[i * 2]
+		matchSize := matchLoc[i*2+1] - matchLoc[i*2]
 		currentLen := buf.Len()
-		if _, err := buf.Seek(int64(currentLen - startLen + matchLoc[i * 2]), io.SeekCurrent); err != nil {
+		if _, err := buf.Seek(int64(currentLen-startLen+matchLoc[i*2]), io.SeekCurrent); err != nil {
 			return nil, err
 		}
 		result[i] = make([]byte, matchSize)
@@ -52,7 +52,7 @@ func matchRegExp(re *regexp.Regexp, buf *bytes.Reader) ([][]byte, error) {
 	}
 	// Seek to match end
 	currentLen := buf.Len()
-	if _, err := buf.Seek(int64(currentLen - startLen + matchLoc[1]), io.SeekCurrent); err != nil {
+	if _, err := buf.Seek(int64(currentLen-startLen+matchLoc[1]), io.SeekCurrent); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -72,7 +72,7 @@ func (js *naiveJS) nextVariable() (string, string, error) {
 	for len(varValue) == 0 {
 		state := _VarIdle
 		var r, quote rune
-		for r, _, err = buf.ReadRune();; r, _, err = buf.ReadRune() {
+		for r, _, err = buf.ReadRune(); ; r, _, err = buf.ReadRune() {
 			if err != nil {
 				return "", "", err
 			}

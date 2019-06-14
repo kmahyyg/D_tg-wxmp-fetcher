@@ -1,12 +1,12 @@
 package article
 
 import (
-	"io"
-	"reflect"
-	"strconv"
 	"encoding/base64"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	"io"
+	"reflect"
+	"strconv"
 )
 
 const (
@@ -34,7 +34,7 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 			tagName, hasAttr := tkz.TagName()
 			tags = append(tags, atom.Lookup(tagName))
 			// Parse tag attrs
-			if tags[len(tags) - 1] == atom.Div {
+			if tags[len(tags)-1] == atom.Div {
 				var key, value []byte // define them first since we don't want to redefine hasAttr
 				for hasAttr {
 					key, value, hasAttr = tkz.TagAttr()
@@ -50,7 +50,7 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 		case html.TextToken:
 			switch stage {
 			case _ConsumeIdle:
-				if tags[len(tags) - 1] == atom.Script {
+				if tags[len(tags)-1] == atom.Script {
 					consumeScript(&atc, tkz.Text())
 				}
 			case _ConsumeInAuthor:
@@ -61,7 +61,7 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 			case _ConsumeInAuthor:
 				stage = _ConsumeIdle
 			}
-			tags = tags[:len(tags) - 1]
+			tags = tags[:len(tags)-1]
 		}
 	}
 	return &atc, nil

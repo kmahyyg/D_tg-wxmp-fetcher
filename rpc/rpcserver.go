@@ -1,24 +1,27 @@
 package rpc
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"net/http"
 
 	"bitbucket.org/mutze5/wxfetcher/article"
 )
 
-type RPCServer struct {
+// Server is a implementation of WxFetcherService
+type Server struct {
 	http *http.Client
 }
 
-func NewServer() *RPCServer {
-	return &RPCServer{
+// NewServer creates a new Server
+func NewServer() *Server {
+	return &Server{
 		http: &http.Client{},
 	}
 }
 
-func (s *RPCServer) FetchURL(ctx context.Context, req *FetchURLRequest) (*FetchURLResponse, error) {
+// FetchURL fetches article information from remote and return the URL key
+func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (*FetchURLResponse, error) {
 	resp, err := s.http.Get(req.OriginalUrl)
 	if err != nil {
 		return nil, err

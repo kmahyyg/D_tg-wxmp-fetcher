@@ -15,8 +15,8 @@ type WxArticle struct {
 	Timestamp   int64  `jsvar:"ct"`
 	// Image
 	AccountImageURL string `jsvar:"hd_head_img"`
-	ArticleImageURL    string `jsvar:"msg_cdn_url"`
-	ContentHTML string // will be filled during HTML parse
+	ArticleImageURL string `jsvar:"msg_cdn_url"`
+	ContentHTML     string // will be filled during HTML parse
 
 	// Internal
 	jsVarUnfilled map[string]int // jsvar to field id
