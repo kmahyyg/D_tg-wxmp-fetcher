@@ -1,10 +1,11 @@
 package rpc
 
 import (
+	"fmt"
 	"context"
 	"net/http"
 
-	"bitbucket.org/mutze5/wxfetcher/parse"
+	"bitbucket.org/mutze5/wxfetcher/article"
 )
 
 type RPCServer struct {
@@ -23,7 +24,7 @@ func (s *RPCServer) FetchURL(ctx context.Context, req *FetchURLRequest) (*FetchU
 		return nil, err
 	}
 	defer resp.Body.Close()
-	parse.Consume(resp.Body)
+	fmt.Println(article.NewFromWxStream(resp.Body))
 	// TODO: Database Operations
 	return &FetchURLResponse{ShortenedKey: "TestKey"}, nil
 }
