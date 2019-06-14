@@ -73,7 +73,7 @@ func Consume(stream io.Reader) (*WxArticle, error) {
 			switch stage {
 			case _ConsumeIdle:
 				if tags[len(tags) - 1] == atom.Script {
-					atc.parseScript(tkz.Text())
+					consumeScript(&atc, tkz.Text())
 				}
 			case _ConsumeInAuthor:
 				atc.AuthorName = string(tkz.Text())
@@ -89,26 +89,26 @@ func Consume(stream io.Reader) (*WxArticle, error) {
 	return &atc, nil
 }
 
-func (a *WxArticle) parseScript(script []byte) {
-	atcType := reflect.TypeOf(*a)
+func consumeScript(atc *WxArticle, script []byte) {
+	atcType := reflect.TypeOf(*atc)
 	// Build jsVarUnfilled
-	if a.jsVarUnfilled == nil {
-		a.jsVarUnfilled = make(map[string]int)
+	if atc.jsVarUnfilled == nil {
+		atc.jsVarUnfilled = make(map[string]int)
 		for i := 0; i < atcType.NumField(); i++ {
 			if varName := atcType.Field(i).Tag.Get("jsvar"); varName != "" {
-				a.jsVarUnfilled[varName] = i
+				atc.jsVarUnfilled[varName] = i
 			}
 		}
 	}
 	// Scan script string for variable definitions
-	actValue := reflect.Indirect(reflect.ValueOf(a))
+	actValue := reflect.Indirect(reflect.ValueOf(atc))
 	buffer := newNaiveJS(script)
 	for {
 		varName, varValue, err := buffer.nextVariable()
 		if err == io.EOF {
 			break
 		}
-		if fieldID, ok := a.jsVarUnfilled[varName]; ok {
+		if fieldID, ok := atc.jsVarUnfilled[varName]; ok {
 			typeField := atcType.Field(fieldID)
 			// Decode the field first
 			if fieldEncoding := typeField.Tag.Get("encoding"); fieldEncoding == "base64" {
@@ -122,7 +122,7 @@ func (a *WxArticle) parseScript(script []byte) {
 				varNumValue, _ := strconv.ParseInt(varValue, 10, 64)
 				actValue.Field(fieldID).SetInt(varNumValue)
 			}
-			delete(a.jsVarUnfilled, varName)
+			delete(atc.jsVarUnfilled, varName)
 		}
 	}
 }
