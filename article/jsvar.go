@@ -9,13 +9,6 @@ import (
 
 type naiveJS bytes.Reader
 
-const (
-	_VarIdle = iota
-	_VarInQuote
-	_VarInQuoteEscaped
-	_VarDone
-)
-
 var (
 	_varDefinition = regexp.MustCompile(`var\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*`)
 )
@@ -70,35 +63,28 @@ func (js *naiveJS) nextVariable() (string, string, error) {
 	// Match variable value (Currently only strings are supported)
 	var varValue []rune
 	for len(varValue) == 0 {
-		state := _VarIdle
 		var r, quote rune
+		var escaped bool
 		for r, _, err = buf.ReadRune(); ; r, _, err = buf.ReadRune() {
 			if err != nil {
 				return "", "", err
 			}
-			switch state {
-			case _VarIdle: // outside of quote
+			if quote == '\x00' {
 				if r == '"' || r == '\'' {
 					quote = r
-					state = _VarInQuote
-					varValue = make([]rune, 0)
+					varValue = make([]rune,0)
 				} else if r != ' ' && r != '|' { // Naively skip spaces and || sign
 					return "", "", errors.New("not a string variable")
 				}
-			case _VarInQuote:
-				if r == '\\' {
-					state = _VarInQuoteEscaped
+			} else {
+				if escaped {
+					escaped = false
 				} else if r == quote {
-					state = _VarDone
 					break
+				} else if r == '\\' {
+					escaped = true
 				}
 				varValue = append(varValue, r)
-			case _VarInQuoteEscaped:
-				state = _VarInQuote
-				varValue = append(varValue, r)
-			}
-			if state == _VarDone {
-				break
 			}
 		}
 	}
