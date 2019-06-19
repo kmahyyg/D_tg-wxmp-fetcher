@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	
 	"net"
 	"os"
 
@@ -9,17 +10,30 @@ import (
 	"google.golang.org/grpc"
 
 	"bitbucket.org/mutze5/wxfetcher/rpc"
+	"bitbucket.org/mutze5/wxfetcher/db"
 )
 
 func main() {
 
 	// Setup Logger Level
 	log.Level(log.Lnotice)
-
-	// Parse flags
+	
+	// Parse Flags
 	rpcListen := flag.String("rpc-listen", ":9967", "Listen address and port for RPC server")
 	webListen := flag.String("web-listen", ":9968", "Listen address and port for web server")
+	configPath := flag.String("config", "config.json", "Path to configuration file")
 	flag.Parse()
+
+	// Read Configuration
+	var err error
+	var cfg *appConfig
+	if cfg, err = readConfig(*configPath); err != nil {
+		log.Critical("Main", "Error connecting to database: %v", err)
+	}
+
+	// Connect to Database
+	log.Notice("Main", "Connecting to database...")
+	db.Connect(cfg.DBConfig.Driver, cfg.DBConfig.Source)
 
 	// Start RPC Server
 	log.Notice("Main", "Starting WxFetcher RPC server at %s...", *rpcListen)
