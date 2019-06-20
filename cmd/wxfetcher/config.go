@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"encoding/json"
+	"os"
 )
 
 type appConfig struct {
@@ -19,7 +19,7 @@ func readConfig(path string) (*appConfig, error) {
 	}
 	defer f.Close()
 	var cfg appConfig
-	if err := json.NewDecoder(f).Decode(&cfg); err != nil{
+	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil

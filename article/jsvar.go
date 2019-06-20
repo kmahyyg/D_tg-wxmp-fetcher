@@ -72,7 +72,7 @@ func (js *naiveJS) nextVariable() (string, string, error) {
 			if quote == '\x00' {
 				if r == '"' || r == '\'' {
 					quote = r
-					varValue = make([]rune,0)
+					varValue = make([]rune, 0)
 				} else if r != ' ' && r != '|' { // Naively skip spaces and || sign
 					return "", "", errors.New("not a string variable")
 				}

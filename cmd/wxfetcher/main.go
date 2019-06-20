@@ -1,23 +1,23 @@
 package main
 
 import (
-	"flag"
 	"context"
+	"flag"
 	"net"
 	"os"
 
 	"bitbucket.org/mutongx/go-utils/log"
 	"google.golang.org/grpc"
 
-	"bitbucket.org/mutze5/wxfetcher/rpc"
 	"bitbucket.org/mutze5/wxfetcher/db"
+	"bitbucket.org/mutze5/wxfetcher/rpc"
 )
 
 func main() {
 
 	// Setup Logger Level
 	log.Level(log.Lnotice)
-	
+
 	// Parse Flags
 	rpcListen := flag.String("rpc-listen", ":9967", "Listen address and port for RPC server")
 	webListen := flag.String("web-listen", ":9968", "Listen address and port for web server")
