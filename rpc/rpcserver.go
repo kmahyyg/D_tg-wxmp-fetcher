@@ -2,10 +2,10 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"bitbucket.org/mutze5/wxfetcher/article"
+	"bitbucket.org/mutze5/wxfetcher/db"
 )
 
 // Server is a implementation of WxFetcherService
@@ -27,7 +27,13 @@ func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (*FetchURLR
 		return nil, err
 	}
 	defer resp.Body.Close()
-	fmt.Println(article.NewFromWxStream(resp.Body))
-	// TODO: Database Operations
-	return &FetchURLResponse{ShortenedKey: "TestKey"}, nil
+	atc, err := article.NewFromWxStream(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	key, err := db.GetWxArticleKey(ctx, atc)
+	if err != nil {
+		return nil, err
+	}
+	return &FetchURLResponse{ShortenedKey: key}, nil
 }
