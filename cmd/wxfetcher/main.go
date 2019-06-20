@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	
+	"context"
 	"net"
 	"os"
 
@@ -28,12 +28,16 @@ func main() {
 	var err error
 	var cfg *appConfig
 	if cfg, err = readConfig(*configPath); err != nil {
-		log.Critical("Main", "Error connecting to database: %v", err)
+		log.Critical("Main", "Error reading configuration file: %v", err)
+		os.Exit(1)
 	}
 
 	// Connect to Database
 	log.Notice("Main", "Connecting to database...")
-	db.Connect(cfg.DBConfig.Driver, cfg.DBConfig.Source)
+	if err := db.Connect(context.Background(), cfg.DBConfig.Driver, cfg.DBConfig.Source); err != nil {
+		log.Critical("Main", "Error connecting to databse : %v", err)
+		os.Exit(1)
+	}
 
 	// Start RPC Server
 	log.Notice("Main", "Starting WxFetcher RPC server at %s...", *rpcListen)
