@@ -3,15 +3,20 @@ package db
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"math/big"
-
-	"database/sql"
+	"strconv"
 
 	"bitbucket.org/mutongx/go-utils/log"
 	_ "github.com/lib/pq" // Load the PostgreSQL driver
 
 	"bitbucket.org/mutze5/wxfetcher/article"
+)
+
+const (
+	wechatLinkFormat = "https://mp.weixin.qq.com/s?__biz=%s&mid=%d&idx=%d&sn=%s"
 )
 
 const keyChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -21,6 +26,8 @@ var keyLen = 8
 var db *sql.DB
 
 var stmts = map[string]string{
+	"GetArticleMeta": "" +
+		"SELECT source, account_id, message_id, article_index, signature, title, author, brief, image_url FROM article, key WHERE key.key = $1 AND article.uuid = key.uuid",
 	"FindArticleByIdentifier": "" +
 		"SELECT article.uuid, key.key FROM article, key WHERE account_id = $1 AND message_id = $2 AND article_index = $3 AND article.uuid = key.uuid",
 	"InsertWxArticle": "" +
@@ -53,6 +60,28 @@ func Connect(ctx context.Context, driver string, source string) error {
 		}
 	}
 	return nil
+}
+
+// GetArticleMeta fetches article metadata by the shortened article key
+func GetArticleMeta(ctx context.Context, key string) (meta *article.Metadata, err error) {
+	var source, signature string
+	var accountID, messageID, articleIndex int64
+	meta = &article.Metadata{}
+	if err = preparedStmts["GetArticleMeta"].QueryRowContext(ctx, key).Scan(
+		&source,
+		&accountID, &messageID, &articleIndex,
+		&signature,
+		&meta.Title, &meta.Author, &meta.Brief, &meta.Image,
+	); err != nil {
+		meta = nil
+		return
+	}
+	switch source {
+	case "wechat":
+		encodedBiz := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(accountID, 10)))
+		meta.Link = fmt.Sprintf(wechatLinkFormat, encodedBiz, messageID, articleIndex, signature)
+	}
+	return
 }
 
 // GetWxArticleKey insert a new WeChat article into database, or return the generated key if already exists

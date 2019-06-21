@@ -21,3 +21,12 @@ type WxArticle struct {
 	// Internal
 	jsVarUnfilled map[string]int // jsvar to field id
 }
+
+// Metadata stores all necessary information to generate a link preview
+type Metadata struct {
+	Link   string
+	Title  string
+	Author string
+	Image  string
+	Brief  string
+}
