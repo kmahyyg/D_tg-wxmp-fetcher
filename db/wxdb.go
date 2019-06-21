@@ -93,9 +93,9 @@ func GetArticleMeta(ctx context.Context, key string) (meta *article.Metadata, er
 		meta = &article.Metadata{
 			Link:   fmt.Sprintf(wechatLinkFormat, encodedBiz, messageID.Int64, articleIndex.Int64, signature.String),
 			Title:  title.String,
-			Author: title.String,
-			Image:  title.String,
-			Brief:  title.String,
+			Author: author.String,
+			Image:  image.String,
+			Brief:  brief.String,
 		}
 	}
 	return
