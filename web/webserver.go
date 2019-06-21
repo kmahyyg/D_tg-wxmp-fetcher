@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"bitbucket.org/mutongx/go-utils/log"
 	"bitbucket.org/mutze5/wxfetcher/db"
 )
 
@@ -35,6 +36,7 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 	key := strings.Trim(r.URL.Path, "/")
 	article, err := db.GetArticleMeta(context.Background(), key)
 	if err != nil {
+		log.Error("Redirect", "%v", err)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
