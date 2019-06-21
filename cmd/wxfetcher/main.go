@@ -11,6 +11,7 @@ import (
 
 	"bitbucket.org/mutze5/wxfetcher/db"
 	"bitbucket.org/mutze5/wxfetcher/rpc"
+	"bitbucket.org/mutze5/wxfetcher/web"
 )
 
 func main() {
@@ -52,6 +53,7 @@ func main() {
 
 	// Start the Web Server
 	log.Notice("Main", "Starting WxFetcher web server at %s...", *webListen)
+	go web.Serve(*webListen)
 
 	select {}
 
