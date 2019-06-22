@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	redirectTemplate = template.Must(template.New("redirect").Parse(strings.NewReplacer("\t", "", "\n", "").Replace(`
+	previewTemplate = template.Must(template.New("redirect").Parse(strings.NewReplacer("\t", "", "\n", "").Replace(`
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -33,14 +33,25 @@ var (
 )
 
 func redirectHandler(w http.ResponseWriter, r *http.Request) {
+	var err error
+	defer func() {
+		if err != nil {
+			log.Error("redirectHandler", "%v", err)
+		}
+	}()
+	// Get article meta from URL Path
 	key := strings.Trim(r.URL.Path, "/")
-	article, err := db.GetArticleMeta(context.Background(), key)
+	meta, err := db.GetArticleMeta(context.Background(), key)
 	if err != nil {
-		log.Error("Redirect", "%v", err)
-		w.WriteHeader(http.StatusNotFound)
+		http.NotFound(w, r)
 		return
 	}
-	redirectTemplate.Execute(w, article)
+	// If request comes from Telegram, render the URL Preview, otherwise redirect
+	if strings.Contains(r.UserAgent(), "TelegramBot") {
+		previewTemplate.Execute(w, meta)
+	} else {
+		http.Redirect(w, r, meta.Link, http.StatusMovedPermanently)
+	}
 }
 
 // Serve creates a new web server

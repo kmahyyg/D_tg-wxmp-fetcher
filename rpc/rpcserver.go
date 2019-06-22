@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"bitbucket.org/mutongx/go-utils/log"
+
 	"bitbucket.org/mutze5/wxfetcher/article"
 	"bitbucket.org/mutze5/wxfetcher/db"
 )
@@ -21,19 +23,27 @@ func NewServer() *Server {
 }
 
 // FetchURL fetches article information from remote and return the URL key
-func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (*FetchURLResponse, error) {
-	resp, err := s.http.Get(req.OriginalUrl)
+func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (resp *FetchURLResponse, err error) {
+	log.Info("RPCServer", "New FetchURL request: %s", req.OriginalUrl)
+	defer func() {
+		if err != nil {
+			log.Error("RPCServer", "Error in FetchURL(%s): %v", req.OriginalUrl, err)
+		}
+	}()
+	// Fetch article body
+	httpResp, err := s.http.Get(req.OriginalUrl)
 	if err != nil {
-		return nil, err
+		return
 	}
-	defer resp.Body.Close()
-	atc, err := article.NewFromWxStream(resp.Body)
+	defer httpResp.Body.Close()
+	// Parse article body (Currently is WeChat only)
+	atc, err := article.NewFromWxStream(httpResp.Body)
 	if err != nil {
-		return nil, err
+		return
 	}
 	key, err := db.GetWxArticleKey(ctx, atc)
 	if err != nil {
-		return nil, err
+		return
 	}
 	return &FetchURLResponse{ShortenedKey: key}, nil
 }

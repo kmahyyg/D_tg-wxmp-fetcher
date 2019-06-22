@@ -2,11 +2,14 @@ package article
 
 import (
 	"encoding/base64"
-	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
 	"io"
 	"reflect"
 	"strconv"
+
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
+
+	"bitbucket.org/mutongx/go-utils/log"
 )
 
 const (
@@ -18,17 +21,18 @@ const (
 
 // NewFromWxStream consumes a HTML stream and generate a WxArticle
 func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
+	// Initialize tokenizer
 	tkz := html.NewTokenizer(stream)
-	atc := WxArticle{}
 	stage := _ConsumeIdle
 	tags := []atom.Atom{0}
+	atc := &WxArticle{}
 	for stage != _ConsumeDone {
 		switch tkz.Next() {
 		case html.ErrorToken:
-			if tkz.Err() == io.EOF {
+			if err := tkz.Err(); err == io.EOF {
 				stage = _ConsumeDone
 			} else {
-				return nil, tkz.Err()
+				return nil, err
 			}
 		case html.StartTagToken:
 			tagName, hasAttr := tkz.TagName()
@@ -51,7 +55,7 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 			switch stage {
 			case _ConsumeIdle:
 				if tags[len(tags)-1] == atom.Script {
-					consumeScript(&atc, tkz.Text())
+					consumeScript(atc, tkz.Text())
 				}
 			case _ConsumeInAuthor:
 				atc.AuthorName = string(tkz.Text())
@@ -64,7 +68,7 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 			tags = tags[:len(tags)-1]
 		}
 	}
-	return &atc, nil
+	return atc, nil
 }
 
 func consumeScript(atc *WxArticle, script []byte) {
@@ -85,6 +89,8 @@ func consumeScript(atc *WxArticle, script []byte) {
 		varName, varValue, err := buffer.nextVariable()
 		if err == io.EOF {
 			break
+		} else if err != nil {
+			log.Error("consumeScript", "Unknwon error: %v", err)
 		}
 		if fieldID, ok := atc.jsVarUnfilled[varName]; ok {
 			typeField := atcType.Field(fieldID)

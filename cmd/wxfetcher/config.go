@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 )
 
@@ -12,15 +13,14 @@ type appConfig struct {
 	} `json:"db"`
 }
 
-func readConfig(path string) (*appConfig, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
+func readConfig(path string) (cfg *appConfig, err error) {
+	var f io.ReadCloser
+	if f, err = os.Open(path); err != nil {
+		return
 	}
 	defer f.Close()
-	var cfg appConfig
-	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
-		return nil, err
+	if err = json.NewDecoder(f).Decode(&cfg); err != nil {
+		return
 	}
-	return &cfg, nil
+	return
 }

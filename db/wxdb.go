@@ -50,21 +50,20 @@ var stmts = map[string]string{
 var preparedStmts = map[string]*sql.Stmt{}
 
 // Connect makes a connection to current database
-func Connect(ctx context.Context, driver string, source string) error {
-	var err error
+func Connect(ctx context.Context, driver string, source string) (err error) {
 	db, err = sql.Open(driver, source)
 	if err != nil {
-		return err
+		return
 	}
 	if err = db.PingContext(ctx); err != nil {
-		return err
+		return
 	}
 	for stmtName, stmtContent := range stmts {
 		if preparedStmts[stmtName], err = db.PrepareContext(ctx, stmtContent); err != nil {
-			return err
+			return
 		}
 	}
-	return nil
+	return
 }
 
 // GetArticleMeta fetches article metadata by the shortened article key
