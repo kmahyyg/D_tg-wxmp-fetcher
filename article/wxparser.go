@@ -12,6 +12,10 @@ import (
 	"bitbucket.org/mutongx/go-utils/log"
 )
 
+var (
+	errIncompleteWxArticle = errors.New("incomplete WeChat article")
+)
+
 const (
 	_ConsumeIdle = iota
 	_ConsumeInAuthor
@@ -67,6 +71,9 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 			}
 			tags = tags[:len(tags)-1]
 		}
+	}
+	if len(atc.jsVarUnfilled) != 0 {
+		return nil, errIncompleteWxArticle
 	}
 	return atc, nil
 }
