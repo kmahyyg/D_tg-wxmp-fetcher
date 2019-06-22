@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"bitbucket.org/mutongx/go-utils/log"
 
@@ -37,20 +38,25 @@ func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (resp *Fetc
 			log.Error("RPCServer", "Error in FetchURL(%s): %v", url, err)
 		}
 	}()
-	// Fetch article body
-	httpResp, err := s.http.Get(url)
-	if err != nil {
-		return
-	}
-	defer httpResp.Body.Close()
 	// Parse article body
 	switch {
-	case strings.HasPrefix(url, "http://mp.weixin.qq.com") || strings.HasPrefix(url, "https://mp.weixin.qq.com"):
-		atc, err := article.NewFromWxStream(httpResp.Body)
+	case strings.HasPrefix(url, "http://mp.weixin.qq.com/") || strings.HasPrefix(url, "https://mp.weixin.qq.com/"):
+		var httpResp *http.Response
+		// Fetch article body
+		httpResp, err = s.http.Get(url)
 		if err != nil {
 			return
 		}
-		key, err := db.GetWxArticleKey(ctx, atc)
+		defer httpResp.Body.Close()
+		// Parse article body
+		var atc *article.WxArticle
+		atc, err = article.NewFromWxStream(httpResp.Body)
+		if err != nil {
+			return
+		}
+		// Fetch short URL key
+		var key string
+		key, err = db.GetWxArticleKey(ctx, atc)
 		if err != nil {
 			return
 		}

@@ -2,6 +2,7 @@ package article
 
 import (
 	"encoding/base64"
+	"errors"
 	"io"
 	"reflect"
 	"strconv"
