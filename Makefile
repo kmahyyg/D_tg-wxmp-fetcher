@@ -5,7 +5,7 @@ else
 endif
 
 proto:
-	protoc -I rpc rpc/wxfetcher.proto --go_out=plugins=grpc:rpc
+	protoc -I proto proto/wxfetcher.proto --go_out=plugins=grpc:proto
 
 wxfetcher:
 	go build -o bin/wxfetcher$(EXT) ./cmd/wxfetcher

@@ -10,6 +10,7 @@ import (
 
 	"bitbucket.org/mutze5/wxfetcher/article"
 	"bitbucket.org/mutze5/wxfetcher/db"
+	"bitbucket.org/mutze5/wxfetcher/proto"
 )
 
 var (
@@ -29,8 +30,8 @@ func NewServer() *Server {
 }
 
 // FetchURL fetches article information from remote and return the URL key
-func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (resp *FetchURLResponse, err error) {
-	url := req.OriginalUrl
+func (s *Server) FetchURL(ctx context.Context, req *proto.FetchURLRequest) (resp *proto.FetchURLResponse, err error) {
+	url := req.Url
 	// Logs and error handling
 	log.Info("RPCServer", "New FetchURL request: %s", url)
 	defer func() {
@@ -55,12 +56,13 @@ func (s *Server) FetchURL(ctx context.Context, req *FetchURLRequest) (resp *Fetc
 			return
 		}
 		// Fetch short URL key
+		var meta *proto.ArticleMeta
 		var key string
-		key, err = db.GetWxArticleKey(ctx, atc)
+		meta, key, err = db.ProcessWxArticle(ctx, atc)
 		if err != nil {
 			return
 		}
-		return &FetchURLResponse{ShortenedKey: key}, nil
+		return &proto.FetchURLResponse{Key: key, Meta: meta}, nil
 	default:
 		return nil, errUnsupportedURL
 	}

@@ -2,25 +2,19 @@ package db
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
-	"fmt"
-	"math/big"
+	"math/rand"
 	"net/http"
-	"strconv"
 
 	"bitbucket.org/mutongx/go-utils/log"
 	_ "github.com/lib/pq" // Load the PostgreSQL driver
 
 	"bitbucket.org/mutze5/wxfetcher/article"
-)
-
-const (
-	wechatLinkFormat = "https://mp.weixin.qq.com/s?__biz=%s&mid=%d&idx=%d&sn=%s"
+	"bitbucket.org/mutze5/wxfetcher/proto"
 )
 
 const keyChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const lenKeyChars = int64(len(keyChars))
 
 var keyLen = 8
 
@@ -67,30 +61,26 @@ func Connect(ctx context.Context, driver string, source string) (err error) {
 }
 
 // GetArticleMeta fetches article metadata by the shortened article key
-func GetArticleMeta(ctx context.Context, key string) (meta *article.Metadata, err error) {
+func GetArticleMeta(ctx context.Context, key string) (meta *proto.ArticleMeta, err error) {
 	var source string
-	var accountID, messageID, articleIndex sql.NullInt64
+	var accountID, messageID, articleIdx sql.NullInt64
 	var signature sql.NullString
 	var title, author, brief, image sql.NullString
 	if err = preparedStmts["GetArticleMeta"].QueryRowContext(ctx, key).Scan(
 		&source,
-		&accountID, &messageID, &articleIndex, &signature,
+		&accountID, &messageID, &articleIdx, &signature,
 		&title, &author, &brief, &image,
 	); err != nil {
 		return
 	}
 	switch source {
 	case "legacy":
-		if err = updateLegacyWxArticle(ctx,
-			accountID.Int64, messageID.Int64, articleIndex.Int64, signature.String,
-		); err != nil {
-			return
-		}
-		return GetArticleMeta(ctx, key)
+		meta, err = updateLegacyWxArticle(ctx,
+			accountID.Int64, messageID.Int64, articleIdx.Int64, signature.String,
+		)
 	case "wechat":
-		encodedBiz := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(accountID.Int64, 10)))
-		meta = &article.Metadata{
-			Link:   fmt.Sprintf(wechatLinkFormat, encodedBiz, messageID.Int64, articleIndex.Int64, signature.String),
+		meta = &proto.ArticleMeta{
+			Link:   article.WxArticleLink(accountID.Int64, messageID.Int64, articleIdx.Int64, signature.String),
 			Title:  title.String,
 			Author: author.String,
 			Image:  image.String,
@@ -100,8 +90,8 @@ func GetArticleMeta(ctx context.Context, key string) (meta *article.Metadata, er
 	return
 }
 
-// GetWxArticleKey insert a new WeChat article into database, or return the generated key if already exists
-func GetWxArticleKey(ctx context.Context, atc *article.WxArticle) (key string, err error) {
+// ProcessWxArticle insert a new WeChat article into database, or return the generated key if already exists
+func ProcessWxArticle(ctx context.Context, atc *article.WxArticle) (meta *proto.ArticleMeta, key string, err error) {
 	// Begin a transaction
 	var tx *sql.Tx
 	if tx, err = db.BeginTx(ctx, &sql.TxOptions{}); err != nil {
@@ -109,6 +99,7 @@ func GetWxArticleKey(ctx context.Context, atc *article.WxArticle) (key string, e
 	}
 	defer func() {
 		if err != nil {
+			log.Error("ProcessWxArticle", "Error when generating key for WeChat article %d/%d/%d: %v. Rolling back.", atc.AccountID, atc.MessageID, atc.ArticleIdx, err)
 			if err := tx.Rollback(); err != nil {
 				log.Critical("Database", "Error during rollback: %v. Database may be inconsistent.", err)
 			}
@@ -118,56 +109,33 @@ func GetWxArticleKey(ctx context.Context, atc *article.WxArticle) (key string, e
 			}
 		}
 	}()
-	if key, err = findWxArticle(ctx, tx, atc); err == nil && key == "" {
-		// Insert the article if not found
-		key, err = insertWxArticle(ctx, tx, atc)
-	}
-	if err != nil {
-		log.Error("GetWxArticleKey", "Error when generating key for WeChat article %d/%d/%d: %v", atc.AccountID, atc.MessageID, atc.ArticleIdx, err)
-	}
-	return
-}
-
-func findWxArticle(ctx context.Context, tx *sql.Tx, atc *article.WxArticle) (key string, err error) {
+	// Generate ArticleMeta for later use
 	var uuid string
-	if err =
-		tx.Stmt(preparedStmts["FindArticleByIdentifier"]).QueryRowContext(ctx,
-			atc.AccountID, atc.MessageID, atc.ArticleIdx,
-		).Scan(&uuid, &key); err == sql.ErrNoRows {
-		// Clear the error if no rows found
+	meta = atc.Meta()
+	// Find the article first
+	err = tx.Stmt(preparedStmts["FindArticleByIdentifier"]).QueryRowContext(ctx, atc.AccountID, atc.MessageID, atc.ArticleIdx).Scan(&uuid, &key)
+	// Not found
+	if err == sql.ErrNoRows {
+		// Clear the error
 		err = nil
-	}
-	return
-}
-
-func insertWxArticle(ctx context.Context, tx *sql.Tx, atc *article.WxArticle) (key string, err error) {
-	// Generate the author name
-	var author string
-	if atc.AuthorName != "" {
-		author = fmt.Sprintf("%s | %s", atc.AccountName, atc.AuthorName)
-	} else {
-		author = atc.AccountName
-	}
-	// Insert the article
-	var uuid string
-	if err =
-		tx.Stmt(preparedStmts["InsertWxArticle"]).QueryRowContext(ctx,
+		// Insert a new entry
+		if err = tx.Stmt(preparedStmts["InsertWxArticle"]).QueryRowContext(ctx,
 			atc.AccountID, atc.MessageID, atc.ArticleIdx, atc.Signature,
-			atc.Title, author, atc.Brief, atc.Timestamp, atc.ArticleImageURL, atc.ContentHTML,
+			meta.Title, meta.Author, meta.Brief, meta.Timestamp, meta.Image,
+			atc.ContentHTML,
 		).Scan(&uuid); err != nil {
-		return
-	}
-	// Generate a new URL Key
-	if key, err = randomKey(keyLen); err == nil {
-		_, err = tx.Stmt(preparedStmts["CreateLinkKey"]).ExecContext(ctx, key, uuid)
+			return
+		}
+		// Generate and insert key
+		key = randomKey(keyLen)
+		_, err = tx.Stmt(preparedStmts["CreateLinkKey"]).ExecContext(ctx, key, uuid) // Ignore error handling since this is the last statement
 	}
 	return
 }
 
-func updateLegacyWxArticle(ctx context.Context, accountID int64, messageID int64, articleIndex int64, signature string) (err error) {
+func updateLegacyWxArticle(ctx context.Context, accountID int64, messageID int64, articleIdx int64, signature string) (meta *proto.ArticleMeta, err error) {
 	// Fetch article content and parse it
-	encodedBiz := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(accountID, 10)))
-	url := fmt.Sprintf(wechatLinkFormat, encodedBiz, messageID, articleIndex, signature)
+	url := article.WxArticleLink(accountID, messageID, articleIdx, signature)
 	resp, err := http.Get(url)
 	if err != nil {
 		return
@@ -175,31 +143,21 @@ func updateLegacyWxArticle(ctx context.Context, accountID int64, messageID int64
 	defer resp.Body.Close()
 	atc, err := article.NewFromWxStream(resp.Body)
 	if err != nil {
-		return err
+		return
 	}
-	// Generate the author name
-	var author string
-	if atc.AuthorName != "" {
-		author = fmt.Sprintf("%s | %s", atc.AccountName, atc.AuthorName)
-	} else {
-		author = atc.AccountName
-	}
-	// Insert the article
+	// Update the article
+	meta = atc.Meta()
 	_, err = preparedStmts["UpdateWxArticle"].ExecContext(ctx,
 		atc.AccountID, atc.MessageID, atc.ArticleIdx, atc.Signature,
-		atc.Title, author, atc.Brief, atc.Timestamp, atc.ArticleImageURL, atc.ContentHTML)
+		meta.Title, meta.Author, meta.Brief, meta.Timestamp, meta.Image,
+		atc.ContentHTML)
 	return
 }
 
-func randomKey(n int) (key string, err error) {
-	max := big.NewInt(int64(len(keyChars)))
+func randomKey(n int) string {
 	result := make([]byte, n)
 	for i := 0; i < n; i++ {
-		var randInt *big.Int
-		if randInt, err = rand.Int(rand.Reader, max); err != nil {
-			return
-		}
-		result[i] = keyChars[randInt.Int64()]
+		result[i] = keyChars[rand.Int63n(lenKeyChars)]
 	}
-	return string(result), nil
+	return string(result)
 }

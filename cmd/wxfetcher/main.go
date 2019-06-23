@@ -3,21 +3,27 @@ package main
 import (
 	"context"
 	"flag"
+	"math/rand"
 	"net"
 	"os"
+	"time"
 
 	"bitbucket.org/mutongx/go-utils/log"
 	"google.golang.org/grpc"
 
 	"bitbucket.org/mutze5/wxfetcher/db"
+	"bitbucket.org/mutze5/wxfetcher/proto"
 	"bitbucket.org/mutze5/wxfetcher/rpc"
 	"bitbucket.org/mutze5/wxfetcher/web"
 )
 
 func main() {
 
+	// Initialize random seed
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	// Setup Logger Level
-	log.Level(log.Lnotice)
+	log.Level(log.Ldebug)
 
 	// Parse Flags
 	rpcListen := flag.String("rpc-listen", ":9967", "Listen address and port for RPC server")
@@ -44,7 +50,7 @@ func main() {
 	log.Notice("Main", "Starting WxFetcher RPC server at %s...", *rpcListen)
 	if rpcSocket, err := net.Listen("tcp", *rpcListen); err == nil {
 		grpcServer, rpcServer := grpc.NewServer(), rpc.NewServer()
-		rpc.RegisterWxFetcherServer(grpcServer, rpcServer)
+		proto.RegisterWxFetcherServer(grpcServer, rpcServer)
 		go grpcServer.Serve(rpcSocket)
 	} else {
 		log.Critical("Main", "Error creating RPC socket: %v", err)

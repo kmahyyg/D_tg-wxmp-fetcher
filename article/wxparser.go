@@ -97,6 +97,8 @@ func consumeScript(atc *WxArticle, script []byte) {
 		varName, varValue, err := buffer.nextVariable()
 		if err == io.EOF {
 			break
+		} else if err == errNotStringVariable {
+			continue
 		} else if err != nil {
 			log.Error("consumeScript", "Unknwon error: %v", err)
 		}
