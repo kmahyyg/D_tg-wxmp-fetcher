@@ -31,39 +31,40 @@ func NewServer() *Server {
 
 // FetchURL fetches article information from remote and return the URL key
 func (s *Server) FetchURL(ctx context.Context, req *proto.FetchURLRequest) (resp *proto.FetchURLResponse, err error) {
-	url := req.Url
+	resp = &proto.FetchURLResponse{}
 	// Logs and error handling
-	log.Info("RPCServer", "New FetchURL request: %s", url)
+	log.Info("RPCServer", "New FetchURL request: %s", req.Url)
 	defer func() {
 		if err != nil {
-			log.Error("RPCServer", "Error in FetchURL(%s): %v", url, err)
+			log.Error("RPCServer", "Error in FetchURL(%s): %v", req.Url, err)
+			resp.Msg = err.Error()
+			err = nil
 		}
 	}()
 	// Parse article body
 	switch {
-	case strings.HasPrefix(url, "http://mp.weixin.qq.com/") || strings.HasPrefix(url, "https://mp.weixin.qq.com/"):
+	case strings.HasPrefix(req.Url, "http://mp.weixin.qq.com/") || strings.HasPrefix(req.Url, "https://mp.weixin.qq.com/"):
 		var httpResp *http.Response
 		// Fetch article body
-		httpResp, err = s.http.Get(url)
-		if err != nil {
+		if httpResp, err = s.http.Get(req.Url); err != nil {
+			resp.Error = proto.FetchURLError_NETWORK
 			return
 		}
 		defer httpResp.Body.Close()
 		// Parse article body
 		var atc *article.WxArticle
-		atc, err = article.NewFromWxStream(httpResp.Body)
-		if err != nil {
+		if atc, err = article.NewFromWxStream(httpResp.Body); err != nil {
+			resp.Error = proto.FetchURLError_PARSE
 			return
 		}
 		// Fetch short URL key
-		var meta *proto.ArticleMeta
-		var key string
-		meta, key, err = db.ProcessWxArticle(ctx, atc)
-		if err != nil {
+		if resp.Meta, resp.Key, err = db.ProcessWxArticle(ctx, atc); err != nil {
+			resp.Error = proto.FetchURLError_INTERNAL
 			return
 		}
-		return &proto.FetchURLResponse{Key: key, Meta: meta}, nil
 	default:
-		return nil, errUnsupportedURL
+		resp.Error, err = proto.FetchURLError_UNSUPPORTED, errUnsupportedURL
+		return
 	}
+	return
 }
