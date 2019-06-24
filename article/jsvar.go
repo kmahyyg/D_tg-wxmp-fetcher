@@ -74,9 +74,11 @@ func (js *naiveJS) nextVariable() (varName string, varValue string, err error) {
 				// quote handeling
 				if r == '"' || r == '\'' {
 					quote = r
-					varValueRunes = nil // reset result to nil
+					varValueRunes = make([]rune, 0) // reset result
 				} else if r != ' ' && r != '|' { // Naively skip spaces and || sign
-					err = errNotStringVariable
+					if varValueRunes == nil { // nothing is found
+						err = errNotStringVariable
+					}
 					return
 				}
 			} else {
