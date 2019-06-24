@@ -73,7 +73,7 @@ func NewFromWxStream(stream io.Reader) (*WxArticle, error) {
 			tags = tags[:len(tags)-1]
 		}
 	}
-	if len(atc.jsVarUnfilled) != 0 {
+	if len(atc.jsVarUnfilled) != 0 || atc.jsVarUnfilled == nil {
 		log.Error("NewFromWxStream", "Unfilled variables: %v", atc.jsVarUnfilled)
 		return nil, errIncompleteWxArticle
 	}
