@@ -60,6 +60,7 @@ func (js *naiveJS) nextVariable() (varName string, varValue string, err error) {
 	if err != nil {
 		return
 	}
+	varName = string(varNameMatch[1])
 	// Match variable value (Currently only strings are supported)
 	var varValueRunes []rune
 	for len(varValueRunes) == 0 {
@@ -94,6 +95,6 @@ func (js *naiveJS) nextVariable() (varName string, varValue string, err error) {
 			}
 		}
 	}
-	varName, varValue = string(varNameMatch[1]), string(varValueRunes)
+	varValue = string(varValueRunes)
 	return
 }
