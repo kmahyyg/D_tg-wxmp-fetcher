@@ -22,9 +22,6 @@ func main() {
 	// Initialize random seed
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	// Setup Logger Level
-	log.Level(log.Ldebug)
-
 	// Parse Flags
 	rpcListen := flag.String("rpc-listen", ":9967", "Listen address and port for RPC server")
 	webListen := flag.String("web-listen", ":9968", "Listen address and port for web server")
@@ -38,6 +35,10 @@ func main() {
 		log.Critical("Main", "Error reading configuration file: %v", err)
 		os.Exit(1)
 	}
+
+	// Setup Logger Level
+	log.Notice("Main", "Switching log level to %s", cfg.LoggingConfig.Level)
+	log.LevelByString(cfg.LoggingConfig.Level)
 
 	// Connect to Database
 	log.Notice("Main", "Connecting to database...")

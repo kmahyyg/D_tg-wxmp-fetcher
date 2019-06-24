@@ -11,6 +11,9 @@ type appConfig struct {
 		Driver string `json:"driver"`
 		Source string `json:"source"`
 	} `json:"db"`
+	LoggingConfig struct {
+		Level string `json:"level"`
+	} `json:"logging"`
 }
 
 func readConfig(path string) (cfg *appConfig, err error) {
