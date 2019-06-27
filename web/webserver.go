@@ -24,7 +24,6 @@ var (
 			<title>{{.Title}}</title>
 		</head>
 		<body>
-			Redirecting...
 			<script type="text/javascript">
 				window.location.href="{{.Link}}";
 			</script>
@@ -46,12 +45,8 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	// If request comes from Telegram, render the URL Preview, otherwise redirect
-	if strings.Contains(r.UserAgent(), "TelegramBot") {
-		previewTemplate.Execute(w, meta)
-	} else {
-		http.Redirect(w, r, meta.Link, http.StatusMovedPermanently)
-	}
+	// http.Redirect(w, r, meta.Link, http.StatusMovedPermanently)
+	previewTemplate.Execute(w, meta)
 }
 
 // Serve creates a new web server
