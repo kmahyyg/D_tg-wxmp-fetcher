@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 
-	"bitbucket.org/mutongx/go-utils/log"
+	"mutong.moe/go/utils/log"
 )
 
 var (

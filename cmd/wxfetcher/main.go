@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"bitbucket.org/mutongx/go-utils/log"
+	"mutong.moe/go/utils/log"
 	"google.golang.org/grpc"
 
 	"bitbucket.org/mutze5/wxfetcher/db"

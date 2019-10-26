@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 
-	"bitbucket.org/mutongx/go-utils/log"
+	"mutong.moe/go/utils/log"
 	_ "github.com/lib/pq" // Load the PostgreSQL driver
 
 	"bitbucket.org/mutze5/wxfetcher/article"

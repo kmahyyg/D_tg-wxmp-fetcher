@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"bitbucket.org/mutongx/go-utils/log"
+	"mutong.moe/go/utils/log"
 
 	"bitbucket.org/mutze5/wxfetcher/article"
 	"bitbucket.org/mutze5/wxfetcher/db"
