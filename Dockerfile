@@ -4,6 +4,7 @@ FROM golang:1-alpine
 RUN apk add --no-cache openssh-client git make
 COPY . /tmp/build
 RUN --mount=type=ssh,required \
+    mkdir -p -m 0600 ~/.ssh && ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts && \
     git config --global url."git@bitbucket.org:".insteadOf "https://bitbucket.org/" && \
     cd /tmp/build && make wxfetcher
 
