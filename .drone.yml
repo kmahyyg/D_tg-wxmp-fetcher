@@ -1,0 +1,17 @@
+kind: pipeline
+type: exec
+name: default
+
+steps:
+- name: Build
+  commands:
+  - eval $(ssh-agent)
+  - ssh-add /root/.ssh/id_rsa
+  - docker build --ssh default -t registry.mutong.moe/wxfetcher .
+  environment:
+    DOCKER_BUILDKIT: 1
+- name: Push
+  commands:
+  - docker push registry.mutong.moe/wxfetcher
+  environment:
+    DOCKER_CONFIG: /root/.docker
