@@ -1,3 +1,5 @@
 # WeChat URL Shortener - WxFetcher
 
-[![Build Status](https://drone.mutong.moe/api/badges/mutze5/wxfetcher/status.svg)](https://drone.mutong.moe/mutze5/wxfetcher)
+Original Work by @mutongx on GitHub. Original Part Licensed under MIT.
+
+Currently Archived.
